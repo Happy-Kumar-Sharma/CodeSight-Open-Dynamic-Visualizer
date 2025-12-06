@@ -3,7 +3,7 @@
   "displayName": "CodeSight Dynamic Visualizer",
   "description": "Non-invasive runtime visualizer using the Debug Adapter Protocol (DAP) to render stack, heap, and data structures in real-time.",
   "version": "0.1.0",
-  "publisher": "your-name",
+  "publisher": "HappyKumarSharma",
   "engines": {
     "vscode": "^1.60.0"
   },
