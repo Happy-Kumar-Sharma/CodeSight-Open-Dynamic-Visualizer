@@ -1,0 +1,10 @@
+html,body,#app{height:100%;margin:0;font-family:Segoe UI, Roboto, Arial;background:#0f1720;color:#e6eef8}
+.toolbar{padding:10px 14px;background:linear-gradient(90deg,#0ea5a4,#06b6d4);color:#042023;font-weight:700}
+.container{display:flex;gap:12px;padding:12px}
+.panel{flex:1;background:#071226;border-radius:6px;padding:10px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+#stack .frame{padding:8px;margin:6px 0;border-radius:4px;background:linear-gradient(180deg,#061422,#0a2430);border:1px solid rgba(255,255,255,0.03)}
+#stack .frame.active{outline:2px solid rgba(96,165,250,0.18)}
+#heap .var{display:flex;justify-content:space-between;padding:8px;margin:6px 0;border-radius:4px;background:#061422;border:1px solid rgba(255,255,255,0.02)}
+.var-name{color:#9ae6b4}
+.var-value{color:#fef3c7}
+.log{height:120px;overflow:auto;background:#020617;color:#9fb4c8;padding:8px;font-family:monospace;white-space:pre-wrap}
