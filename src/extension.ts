@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { StateTranslator } from './stateTranslator';
 
 let panel: vscode.WebviewPanel | undefined;
+let lastDapMessages: any[] = [];
 
 export function activate(context: vscode.ExtensionContext) {
   const openCommand = vscode.commands.registerCommand('codesight.start', () => {
@@ -31,8 +32,12 @@ export function activate(context: vscode.ExtensionContext) {
     });
 
     panel.webview.onDidReceiveMessage((msg: any) => {
-      // future: handle messages from the webview UI
+      // handle messages from the webview UI
       console.log('Message from webview:', msg);
+      if (msg && msg.command === 'requestDiagnostics') {
+        const payload = lastDapMessages.slice(-500);
+        panel?.webview.postMessage({ type: 'diagnostics', payload });
+      }
     });
   });
 
@@ -44,12 +49,75 @@ export function activate(context: vscode.ExtensionContext) {
       const translator = new StateTranslator();
 
       const tracker: vscode.DebugAdapterTracker = {
-        onDidSendMessage: (message: any) => {
+        onWillReceiveMessage: (message: any) => {
           try {
-            if (panel) {
-              const unified = translator.translate(message, session);
-              if (unified) {
-                panel.webview.postMessage({ type: 'dapEvent', payload: unified });
+            lastDapMessages.push({ direction: 'toAdapter', message, ts: Date.now() });
+            if (lastDapMessages.length > 2000) lastDapMessages.shift();
+          } catch (e) {
+            console.warn('Failed to record outgoing dap message', e);
+          }
+        },
+        onDidSendMessage: async (message: any) => {
+          try {
+            lastDapMessages.push({ direction: 'fromAdapter', message, ts: Date.now() });
+            if (lastDapMessages.length > 2000) lastDapMessages.shift();
+          } catch (e) {
+            console.warn('Failed to record incoming dap message', e);
+          }
+
+          try {
+            if (!panel) return;
+
+            const unified = translator.translate(message, session);
+            if (unified) {
+              panel.webview.postMessage({ type: 'dapEvent', payload: unified });
+              console.log('Posted to webview:', unified.kind || '(unknown)');
+            }
+
+            // When we detect a 'stopped' event, proactively request more state
+            if (unified && unified.kind === 'stopped') {
+              const threadId = unified.threadId;
+
+              try {
+                // Request stackTrace for the thread
+                const stackResp = await session.customRequest('stackTrace', { threadId, startFrame: 0, levels: 50 });
+                const stackMsg = { type: 'response', command: 'stackTrace', body: stackResp, threadId };
+                const stackUnified = translator.translate(stackMsg, session);
+                if (stackUnified) panel.webview.postMessage({ type: 'dapEvent', payload: stackUnified });
+
+                // If we have frames, request scopes for the top frame
+                const topFrame = (stackResp && (stackResp.stackFrames || stackResp.stackframes) && stackResp.stackFrames[0]) || null;
+                const topFrameId = topFrame ? topFrame.id : null;
+                if (topFrameId !== null && topFrameId !== undefined) {
+                  const scopesResp = await session.customRequest('scopes', { frameId: topFrameId });
+                  const scopesMsg = { type: 'response', command: 'scopes', body: scopesResp, frameId: topFrameId };
+                  const scopesUnified = translator.translate(scopesMsg, session);
+                  if (scopesUnified) panel.webview.postMessage({ type: 'dapEvent', payload: scopesUnified });
+
+                  // For each scope, request variables (limit to first 6 scopes to avoid flooding)
+                  const scopesList = (scopesResp && scopesResp.scopes) || [];
+                  const limit = Math.min(scopesList.length, 6);
+                  for (let i = 0; i < limit; i++) {
+                    const scope = scopesList[i];
+                    try {
+                      const varsResp = await session.customRequest('variables', { variablesReference: scope.variablesReference });
+                      const varsMsg = { type: 'response', command: 'variables', body: varsResp, variablesReference: scope.variablesReference, scopeName: scope.name, frameId: topFrameId };
+                      const varsUnified = translator.translate(varsMsg, session);
+                      if (varsUnified) panel.webview.postMessage({ type: 'dapEvent', payload: varsUnified });
+                    } catch (e) {
+                      console.warn('variables request failed for scope', scope, e);
+                    }
+                  }
+                }
+                // After follow-up requests, also post a diagnostics dump to help debugging
+                try {
+                  const diag = lastDapMessages.slice(-300);
+                  panel.webview.postMessage({ type: 'diagnostics', payload: diag });
+                } catch (e) {
+                  console.warn('Failed to post diagnostics automatically', e);
+                }
+              } catch (e) {
+                console.warn('Follow-up DAP requests failed', e);
               }
             }
           } catch (e) {
@@ -57,9 +125,6 @@ export function activate(context: vscode.ExtensionContext) {
           }
         },
         onWillStartSession: () => {},
-        onWillReceiveMessage: (message: any) => {
-          // optional: inspect outgoing messages
-        }
       };
 
       return tracker;
@@ -85,6 +150,8 @@ function getWebviewContent(webview: vscode.Webview, scriptSrc: string, styleHref
 </head>
 <body>
 <div id="app"></div>
+<!-- Load D3 from CDN (allowed by CSP https:) so the webview has access to d3 global -->
+<script src="https://d3js.org/d3.v7.min.js"></script>
 <script nonce="${nonce}" src="${scriptSrc}"></script>
 </body>
 </html>`;

@@ -1,10 +1,30 @@
 html,body,#app{height:100%;margin:0;font-family:Segoe UI, Roboto, Arial;background:#0f1720;color:#e6eef8}
 .toolbar{padding:10px 14px;background:linear-gradient(90deg,#0ea5a4,#06b6d4);color:#042023;font-weight:700}
-.container{display:flex;gap:12px;padding:12px}
-.panel{flex:1;background:#071226;border-radius:6px;padding:10px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
-#stack .frame{padding:8px;margin:6px 0;border-radius:4px;background:linear-gradient(180deg,#061422,#0a2430);border:1px solid rgba(255,255,255,0.03)}
-#stack .frame.active{outline:2px solid rgba(96,165,250,0.18)}
-#heap .var{display:flex;justify-content:space-between;padding:8px;margin:6px 0;border-radius:4px;background:#061422;border:1px solid rgba(255,255,255,0.02)}
-.var-name{color:#9ae6b4}
-.var-value{color:#fef3c7}
+.layout{display:flex;flex-direction:column;height:100%}
+.topbar{display:flex;align-items:center;gap:12px;padding:8px}
+.main{display:flex;flex:1;gap:12px;padding:12px}
+.panel{background:#071226;border-radius:6px;padding:10px;box-shadow:0 2px 8px rgba(0,0,0,0.4)}
+.left{width:320px;flex-shrink:0}
+.center{flex:1;display:flex;flex-direction:column}
+.right{width:340px;flex-shrink:0}
+.stack-list{max-height:240px;overflow:auto}
+.frame{padding:8px;margin:6px 0;border-radius:4px;background:linear-gradient(180deg,#061422,#0a2430);border:1px solid rgba(255,255,255,0.03)}
+.frame.active{outline:2px solid rgba(96,165,250,0.18)}
+.heap-canvas{flex:1;background:#061426;border-radius:6px;padding:8px}
+.heap-node{fill:#09324a;stroke:#0ea5a4;stroke-width:1}
+.heap-text{fill:#e6eef8;font-size:12px}
+.array-cell{fill:#0b2a3a;stroke:#7dd3fc}
 .log{height:120px;overflow:auto;background:#020617;color:#9fb4c8;padding:8px;font-family:monospace;white-space:pre-wrap}
+.legend{font-size:12px;color:#9fb4c8;margin-left:auto}
+
+/* Inspector panel */
+.inspector{display:flex;flex-direction:column;gap:8px}
+.inspector .title{font-weight:700;color:#a7f3d0}
+.inspector .meta{font-size:12px;color:#9fb4c8}
+.inspector .members{overflow:auto;max-height:420px}
+.inspector .member{padding:6px;border-radius:4px;margin:4px 0;background:#071b26;border:1px solid rgba(255,255,255,0.02);display:flex;justify-content:space-between}
+.inspector .member .ref{color:#7dd3fc}
+.inspector .member .val{color:#fef3c7}
+.inspector .actions{display:flex;gap:8px;margin-top:8px}
+.btn{padding:6px 8px;border-radius:4px;background:#075985;color:#e6eef8;border:none;cursor:pointer}
+.btn.secondary{background:#0b2230}
